@@ -22,7 +22,7 @@ defmodule Day01 do
         %{rotation: rotation, sum: sum}
       end)
 
-    IO.puts("Result: #{result.sum}")
+    result.sum
   end
 
   def solve_b(file) do
@@ -34,11 +34,12 @@ defmodule Day01 do
         %{rotation: rotation, sum: sum + count}
       end)
 
-    IO.puts("Result: #{result.sum}")
+    result.sum
   end
 end
 
-Day01.solve_a("./inputs/test01.txt")
-Day01.solve_a("./inputs/input01.txt")
-Day01.solve_b("./inputs/test01.txt")
-Day01.solve_b("./inputs/input01.txt")
+3 = Day01.solve_a("./inputs/test01.txt")
+IO.puts(~s(Day 01a: #{Day01.solve_a("./inputs/input01.txt")}))
+
+6 = Day01.solve_b("./inputs/test01.txt")
+IO.puts(~s(Day 01b: #{Day01.solve_b("./inputs/input01.txt")}))
