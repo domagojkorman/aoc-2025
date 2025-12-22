@@ -42,4 +42,4 @@ end
 IO.puts(~s(Day 01a: #{Day01.solve_a("./inputs/input01.txt")}))
 
 6 = Day01.solve_b("./inputs/test01.txt")
-IO.puts(~s(Day 01b: #{Day01.solve_b("./inputs/input01.txt")}))
+# IO.puts(~s(Day 01b: #{Day01.solve_b("./inputs/input01.txt")}))

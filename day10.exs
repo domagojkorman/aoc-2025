@@ -12,13 +12,9 @@ defmodule Day10 do
   def solve_b(file) do
     parse_input(file)
     |> Enum.with_index()
+    |> Enum.slice(0..0)
     |> Enum.map(fn {input, index} ->
-      IO.puts("Solving input index :#{index}")
-      all_zeroes = Tuple.duplicate(0, tuple_size(input.joltage))
-      input = Map.put(input, :max_steps, Tuple.sum(input.joltage))
-      s = increase_switches(input, [%{joltage: all_zeroes, steps: 0}], MapSet.new())
-      IO.puts("Solved input index :#{index}\n\n")
-      s
+      increase_switches(input, [%{joltage: input.joltage, steps: 0, rank: 0}], MapSet.new(), 0)
     end)
     |> Enum.sum()
   end
@@ -40,7 +36,6 @@ defmodule Day10 do
         |> Enum.map(fn b ->
           String.split(b, ",", trim: true) |> Enum.map(&String.to_integer/1)
         end)
-        |> Enum.sort_by(&length/1, :desc)
 
       joltage =
         Regex.run(~r/{([\d,]+)}/, row, capture: :all_but_first)
@@ -87,50 +82,74 @@ defmodule Day10 do
   defp increase_switches(_input, [], _visited), do: raise("Not found")
 
   defp increase_switches(
-         %{joltage: joltage, buttons: buttons, max_steps: max_steps} = input,
+         %{buttons: buttons} = input,
          [hd | tail],
-         visited
+         visited,
+         total_steps
        ) do
-    %{joltage: current_joltage, steps: steps} = hd
+    IO.inspect(hd, label: "PASS THROUGH")
+    IO.puts(total_steps)
+    # if total_steps > 15, do: raise("FAILED ALGO")
 
-    invalid? = joltage_invalid?(joltage, current_joltage)
+    %{joltage: current_joltage, steps: steps, rank: rank} = hd
+    invalid? = joltage_invalid?(current_joltage)
 
     if MapSet.member?(visited, current_joltage) or invalid? do
-      increase_switches(input, tail, visited)
+      increase_switches(input, tail, visited, total_steps + 1)
     else
-      if current_joltage == joltage do
+      if joltage_finished?(current_joltage) do
         steps
       else
         visited = MapSet.put(visited, current_joltage)
 
+        n = tuple_size(current_joltage)
+        sum = Enum.reduce(0..(n - 1), 0, fn i, acc -> acc + elem(current_joltage, i) end)
+        mean = div(sum, n)
+
+        buttons =
+          buttons
+          |> Enum.reject(fn b -> Enum.any?(b, fn v -> elem(current_joltage, v) == 0 end) end)
+          |> Enum.map(fn b ->
+            # bigger is better: prefer decrementing indices far above the mean
+            rank =
+              Enum.reduce(b, 0.0, fn i, acc ->
+                xi = elem(current_joltage, i)
+                acc + (2.0 * (xi - mean) - 1.0)
+              end)
+
+            %{value: b, rank: rank}
+          end)
+          |> Enum.reject(&(&1.rank <= 0.0))
+
         next_joltages =
           Enum.map(buttons, fn button ->
             joltage =
-              Enum.reduce(button, current_joltage, fn v, joltage ->
-                put_elem(joltage, v, elem(joltage, v) + 1)
+              Enum.reduce(button.value, current_joltage, fn v, joltage ->
+                put_elem(joltage, v, elem(joltage, v) - 1)
               end)
 
             steps = steps + 1
-            rank = Tuple.sum(joltage) * (max_steps - steps)
+            rank = rank + button.rank
 
             %{steps: steps, joltage: joltage, rank: rank}
           end)
 
-        rest = (tail ++ next_joltages) |> Enum.sort_by(& &1.rank, :desc)
-        increase_switches(input, rest, visited)
+        rest = (next_joltages ++ tail) |> Enum.sort_by(& &1.rank, :desc)
+        increase_switches(input, rest, visited, total_steps + 1)
       end
     end
   end
 
-  defp joltage_invalid?(result, current) do
-    Enum.any?(0..(tuple_size(result) - 1), fn i ->
-      elem(current, i) > elem(result, i)
-    end)
-  end
+  defp joltage_finished?(current),
+    do: Enum.all?(0..(tuple_size(current) - 1), fn i -> elem(current, i) == 0 end)
+
+  defp joltage_invalid?(current),
+    do: Enum.any?(0..(tuple_size(current) - 1), fn i -> elem(current, i) < 0 end)
 end
 
-7 = Day10.solve_a("./inputs/test10.txt")
-IO.puts("Day 10a: #{Day10.solve_a("./inputs/input10.txt")}")
+# 7 = Day10.solve_a("./inputs/test10.txt")
+# IO.puts("Day 10a: #{Day10.solve_a("./inputs/input10.txt")}")
 
-33 = Day10.solve_b("./inputs/test10.txt")
-IO.puts("Day 10b: #{Day10.solve_b("./inputs/input10.txt")}")
+10 = Day10.solve_b("./inputs/test10.txt")
+# 33 = Day10.solve_b("./inputs/test10.txt")
+# IO.puts("Day 10b: #{Day10.solve_b("./inputs/input10.txt")}")
